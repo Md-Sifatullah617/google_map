@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -11,6 +14,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final TextEditingController txtController = TextEditingController();
+  List placesList = [];
+  var uuid = const Uuid();
+  String _sessionToken = "1234567890";
   final CameraPosition _kGooglePlex = const CameraPosition(
       target: LatLng(23.727150967403755, 90.38139997468986), zoom: 14);
   final Completer<GoogleMapController> _controller = Completer();
@@ -51,24 +58,106 @@ class _MyHomePageState extends State<MyHomePage> {
     return await Geolocator.getCurrentPosition();
   }
 
+  void onChange() {
+    if (_sessionToken == null) {
+      setState(() {
+        _sessionToken = uuid.v4();
+      });
+    }
+
+    getSuggestion(txtController.text);
+  }
+
+  getSuggestion(String input) async {
+    String googlePlacesapikey = "AIzaSyDQ2c_pOSOFYSjxGMwkFvCVWKjYOM9siow";
+    String baseUrl =
+        "https://maps.googleapis.com/maps/api/place/autocomplete/json";
+    String request =
+        "$baseUrl?input=$input&key=$googlePlacesapikey&sessiontoken=$_sessionToken";
+    var response = await http.get(Uri.parse(request));
+    print(response.body.toString());
+    if (response.statusCode == 200) {
+      setState(() {
+        placesList = jsonDecode(response.body.toString())['predictions'];
+      });
+    } else {
+      throw Exception("Failed to load data");
+    }
+  }
+
   @override
   void initState() {
     loadLocation();
+    txtController.addListener(() {
+      onChange();
+    });
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    double h = MediaQuery.of(context).size.height;
+    double w = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Google Map'),
       ),
-      body: GoogleMap(
-        initialCameraPosition: _kGooglePlex,
-        markers: Set.of(_marker),
-        onMapCreated: (controller) {
-          _controller.complete(controller);
-        },
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: _kGooglePlex,
+            markers: Set.of(_marker),
+            onMapCreated: (controller) {
+              _controller.complete(controller);
+            },
+          ),
+          Column(
+            children: [
+              Container(
+                alignment: Alignment.center,
+                height: h * 0.06,
+                width: w,
+                margin: EdgeInsets.all(
+                  h * 0.01,
+                ),
+                decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(20))),
+                child: TextFormField(
+                  controller: txtController,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    decoration: TextDecoration.none,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: "Enter your location",
+                    hintStyle: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  onFieldSubmitted: (value) {},
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                    itemCount: placesList.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        tileColor: Colors.white,
+                        title: Text(placesList[index]['description']),
+                      );
+                    }),
+              ),
+            ],
+          )
+        ],
       ),
       floatingActionButton: Container(
         alignment: Alignment.bottomLeft,
@@ -76,12 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: FloatingActionButton(
             child: const Icon(Icons.location_history),
             onPressed: () {
-              // GoogleMapController controller = await _controller.future;
-              // controller.animateCamera(CameraUpdate.newCameraPosition(
-              //   const CameraPosition(
-              //       target: LatLng(20.727150967403755, 90.381399977), zoom: 14),
-              // ));
-              // setState(() {});
+              loadLocation();
             }),
       ),
     );
