@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -149,9 +150,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ListView.builder(
                     itemCount: placesList.length,
                     itemBuilder: (context, index) {
-                      return ListTile(
-                        tileColor: Colors.white,
-                        title: Text(placesList[index]['description']),
+                      return Card(
+                        child: ListTile(
+                          onTap: () async {
+                            txtController.text =
+                                placesList[index]['description'];
+                            print(placesList[index]['description']);
+                            List locations = await locationFromAddress(
+                                placesList[index]['description']);
+                            print(
+                                "location: ${locations.last.latitude} ${locations.last.longitude}");
+                          },
+                          title: Text(placesList[index]['description']),
+                        ),
                       );
                     }),
               ),
