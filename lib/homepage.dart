@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'dart:ui' as ui;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -17,12 +20,28 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController txtController = TextEditingController();
   List placesList = [];
+  List markerIcon = [
+    'assets/car.png',
+    "assets/delivery-bike.png",
+    'assets/flat.png',
+    'assets/hook.png',
+    'assets/motorbike.png',
+    'assets/sport-car.png'
+  ];
+  List<LatLng> latlong = [
+    const LatLng(37.4219983, -122.084),
+    const LatLng(37.4219993, -122.094),
+    const LatLng(37.4219103, -122.104),
+    const LatLng(37.4219150, -122.114),
+    const LatLng(37.4219180, -122.124),
+    const LatLng(37.4219120, -122.134),
+  ];
   var uuid = const Uuid();
   String _sessionToken = "1234567890";
   final CameraPosition _kGooglePlex = const CameraPosition(
       target: LatLng(23.727150967403755, 90.38139997468986), zoom: 14);
   final Completer<GoogleMapController> _controller = Completer();
-
+  Uint8List? markerImage;
   final List<Marker> _marker = [];
   List<Marker> listOfMarker = [
     const Marker(
@@ -38,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
     getCurrentLocation().then((value) async {
       print("my current location: \n${value.latitude} ${value.longitude}");
       _marker.add(Marker(
-          markerId: const MarkerId("3"),
+          markerId: const MarkerId("cl"),
           position: LatLng(value.latitude, value.longitude),
           infoWindow: const InfoWindow(title: "Sifat's current location")));
 
@@ -86,12 +105,35 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetHeight: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+  }
+
+  loadCustomMarker() async {
+    for (int i = 0; i < markerIcon.length; i++) {
+      final Uint8List mrkIcon = await getBytesFromAsset(markerIcon[i], 100);
+      _marker.add(Marker(
+          icon: BitmapDescriptor.fromBytes(mrkIcon),
+          markerId: MarkerId(i.toString()),
+          position: latlong[i],
+          infoWindow: InfoWindow(title: "position $i")));
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     loadLocation();
     txtController.addListener(() {
       onChange();
     });
+    loadCustomMarker();
     super.initState();
   }
 
@@ -112,62 +154,67 @@ class _MyHomePageState extends State<MyHomePage> {
               _controller.complete(controller);
             },
           ),
-          Column(
-            children: [
-              Container(
-                alignment: Alignment.center,
-                height: h * 0.06,
-                width: w,
-                margin: EdgeInsets.all(
-                  h * 0.01,
-                ),
-                decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(20))),
-                child: TextFormField(
-                  controller: txtController,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    decoration: TextDecoration.none,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: "Enter your location",
-                    hintStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    border: InputBorder.none,
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  onFieldSubmitted: (value) {},
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                    itemCount: placesList.length,
-                    itemBuilder: (context, index) {
-                      return Card(
-                        child: ListTile(
-                          onTap: () async {
-                            txtController.text =
-                                placesList[index]['description'];
-                            print(placesList[index]['description']);
-                            List locations = await locationFromAddress(
-                                placesList[index]['description']);
-                            print(
-                                "location: ${locations.last.latitude} ${locations.last.longitude}");
-                          },
-                          title: Text(placesList[index]['description']),
-                        ),
-                      );
-                    }),
-              ),
-            ],
-          )
+          // Column(
+          //   children: [
+          //     Container(
+          //       alignment: Alignment.center,
+          //       height: h * 0.06,
+          //       width: w,
+          //       margin: EdgeInsets.all(
+          //         h * 0.01,
+          //       ),
+          //       decoration: const BoxDecoration(
+          //           color: Colors.white,
+          //           borderRadius: BorderRadius.all(Radius.circular(20))),
+          //       child: TextFormField(
+          //         controller: txtController,
+          //         style: const TextStyle(
+          //           color: Colors.black,
+          //           fontSize: 16,
+          //           decoration: TextDecoration.none,
+          //         ),
+          //         decoration: const InputDecoration(
+          //           hintText: "Enter your location",
+          //           hintStyle: TextStyle(
+          //             color: Colors.grey,
+          //             fontSize: 16,
+          //           ),
+          //           border: InputBorder.none,
+          //           prefixIcon: Icon(
+          //             Icons.search,
+          //             color: Colors.grey,
+          //           ),
+          //         ),
+          //         onFieldSubmitted: (value) {},
+          //       ),
+          //     ),
+          //     Expanded(
+          //       child: ListView.builder(
+          //           itemCount: placesList.length,
+          //           itemBuilder: (context, index) {
+          //             return Card(
+          //               child: ListTile(
+          //                 onTap: () async {
+          //                   txtController.text =
+          //                       placesList[index]['description'];
+          //                   print(placesList[index]['description']);
+          //                   List locations = await locationFromAddress(
+          //                       placesList[index]['description']);
+          //                   print(
+          //                       "location: ${locations.last.latitude} ${locations.last.longitude}");
+          //                   if (txtController.text.toString() ==
+          //                       placesList[index]['description']) {
+          //                     placesList.clear();
+          //                     setState(() {});
+          //                   }
+          //                 },
+          //                 title: Text(placesList[index]['description']),
+          //               ),
+          //             );
+          //           }),
+          //     ),
+          //   ],
+          // )
         ],
       ),
       floatingActionButton: Container(
