@@ -147,74 +147,75 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: _kGooglePlex,
-            markers: Set.of(_marker),
-            onMapCreated: (controller) {
-              _controller.complete(controller);
-            },
+          Container(
+            child: GoogleMap(
+              initialCameraPosition: _kGooglePlex,
+              markers: Set.of(_marker),
+              onMapCreated: (controller) {
+                _controller.complete(controller);
+              },
+            ),
           ),
-          // Column(
-          //   children: [
-          //     Container(
-          //       alignment: Alignment.center,
-          //       height: h * 0.06,
-          //       width: w,
-          //       margin: EdgeInsets.all(
-          //         h * 0.01,
-          //       ),
-          //       decoration: const BoxDecoration(
-          //           color: Colors.white,
-          //           borderRadius: BorderRadius.all(Radius.circular(20))),
-          //       child: TextFormField(
-          //         controller: txtController,
-          //         style: const TextStyle(
-          //           color: Colors.black,
-          //           fontSize: 16,
-          //           decoration: TextDecoration.none,
-          //         ),
-          //         decoration: const InputDecoration(
-          //           hintText: "Enter your location",
-          //           hintStyle: TextStyle(
-          //             color: Colors.grey,
-          //             fontSize: 16,
-          //           ),
-          //           border: InputBorder.none,
-          //           prefixIcon: Icon(
-          //             Icons.search,
-          //             color: Colors.grey,
-          //           ),
-          //         ),
-          //         onFieldSubmitted: (value) {},
-          //       ),
-          //     ),
-          //     Expanded(
-          //       child: ListView.builder(
-          //           itemCount: placesList.length,
-          //           itemBuilder: (context, index) {
-          //             return Card(
-          //               child: ListTile(
-          //                 onTap: () async {
-          //                   txtController.text =
-          //                       placesList[index]['description'];
-          //                   print(placesList[index]['description']);
-          //                   List locations = await locationFromAddress(
-          //                       placesList[index]['description']);
-          //                   print(
-          //                       "location: ${locations.last.latitude} ${locations.last.longitude}");
-          //                   if (txtController.text.toString() ==
-          //                       placesList[index]['description']) {
-          //                     placesList.clear();
-          //                     setState(() {});
-          //                   }
-          //                 },
-          //                 title: Text(placesList[index]['description']),
-          //               ),
-          //             );
-          //           }),
-          //     ),
-          //   ],
-          // )
+          Stack(
+            children: [
+              Container(
+                alignment: Alignment.center,
+                height: h * 0.06,
+                width: w,
+                margin: EdgeInsets.all(
+                  h * 0.01,
+                ),
+                decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(20))),
+                child: TextFormField(
+                  controller: txtController,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    decoration: TextDecoration.none,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: "Enter your location",
+                    hintStyle: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  onFieldSubmitted: (value) {},
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView.builder(
+                itemCount: placesList.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    child: ListTile(
+                      onTap: () async {
+                        txtController.text = placesList[index]['description'];
+                        print(placesList[index]['description']);
+                        List locations = await locationFromAddress(
+                            placesList[index]['description']);
+                        print(
+                            "location: ${locations.last.latitude} ${locations.last.longitude}");
+                        if (txtController.text.toString() ==
+                            placesList[index]['description']) {
+                          placesList.clear();
+                          setState(() {});
+                        }
+                      },
+                      title: Text(placesList[index]['description']),
+                    ),
+                  );
+                }),
+          )
         ],
       ),
       floatingActionButton: Container(
