@@ -24,6 +24,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final CustomInfoWindowController customInfoCtrl =
       CustomInfoWindowController();
   Set<Polygon> _polygon = HashSet<Polygon>();
+  Set<Polyline> _polyline = {};
+
   List placesList = [];
   List markerIcon = [
     'assets/car.png',
@@ -147,6 +149,12 @@ class _MyHomePageState extends State<MyHomePage> {
               latlong[i]);
         },
       ));
+      _polyline.add(Polyline(
+        polylineId: PolylineId(i.toString()),
+        points: latlong,
+        color: Colors.yellow,
+        width: 2,
+      ));
       setState(() {});
     }
   }
@@ -163,6 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
         points: latlong,
         strokeWidth: 2,
         fillColor: Colors.red.withOpacity(0.2)));
+
     super.initState();
   }
 
@@ -173,6 +182,62 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Google Map'),
+        actions: [
+          PopupMenuButton(
+              icon: const Icon(Icons.more_horiz),
+              itemBuilder: (BuildContext context) {
+                return [
+                  PopupMenuItem(
+                    onTap: () {
+                      _controller.future.then((value) {
+                        DefaultAssetBundle.of(context)
+                            .loadString("assets/maptheme/silver.json")
+                            .then((string) {
+                          value.setMapStyle(string);
+                        });
+                      });
+                    },
+                    child: const Text("Silveer"),
+                  ),
+                  PopupMenuItem(
+                    onTap: () {
+                      _controller.future.then((value) {
+                        DefaultAssetBundle.of(context)
+                            .loadString("assets/maptheme/retro.json")
+                            .then((string) {
+                          value.setMapStyle(string);
+                        });
+                      });
+                    },
+                    child: const Text("Retro"),
+                  ),
+                  PopupMenuItem(
+                    onTap: () {
+                      _controller.future.then((value) {
+                        DefaultAssetBundle.of(context)
+                            .loadString("assets/maptheme/dark.json")
+                            .then((string) {
+                          value.setMapStyle(string);
+                        });
+                      });
+                    },
+                    child: const Text("Dark"),
+                  ),
+                  PopupMenuItem(
+                    onTap: () {
+                      _controller.future.then((value) {
+                        DefaultAssetBundle.of(context)
+                            .loadString("assets/maptheme/night.json")
+                            .then((string) {
+                          value.setMapStyle(string);
+                        });
+                      });
+                    },
+                    child: const Text("Night"),
+                  )
+                ];
+              })
+        ],
       ),
       body: Stack(
         children: [
@@ -180,7 +245,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: GoogleMap(
               initialCameraPosition: _kGooglePlex,
               markers: Set.of(_marker),
-              polygons: _polygon,
+              // polygons: _polygon,
+              polylines: _polyline,
               onTap: (argument) {
                 customInfoCtrl.hideInfoWindow!();
               },
