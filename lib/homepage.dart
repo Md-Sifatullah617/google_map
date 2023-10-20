@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:custom_info_window/custom_info_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
@@ -19,6 +21,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController txtController = TextEditingController();
+  final CustomInfoWindowController customInfoCtrl =
+      CustomInfoWindowController();
+  Set<Polygon> _polygon = HashSet<Polygon>();
   List placesList = [];
   List markerIcon = [
     'assets/car.png',
@@ -30,12 +35,13 @@ class _MyHomePageState extends State<MyHomePage> {
   ];
   List<LatLng> latlong = [
     const LatLng(37.4219983, -122.084),
-    const LatLng(37.4219993, -122.094),
-    const LatLng(37.4219103, -122.104),
-    const LatLng(37.4219150, -122.114),
-    const LatLng(37.4219180, -122.124),
-    const LatLng(37.4219120, -122.134),
+    const LatLng(38.4219993, -122.094),
+    const LatLng(37.4219103, -120.104),
+    const LatLng(40.4219150, -122.114),
+    const LatLng(42.4219180, -122.124),
+    const LatLng(37.4219120, -123.134),
   ];
+
   var uuid = const Uuid();
   String _sessionToken = "1234567890";
   final CameraPosition _kGooglePlex = const CameraPosition(
@@ -119,10 +125,28 @@ class _MyHomePageState extends State<MyHomePage> {
     for (int i = 0; i < markerIcon.length; i++) {
       final Uint8List mrkIcon = await getBytesFromAsset(markerIcon[i], 100);
       _marker.add(Marker(
-          icon: BitmapDescriptor.fromBytes(mrkIcon),
-          markerId: MarkerId(i.toString()),
-          position: latlong[i],
-          infoWindow: InfoWindow(title: "position $i")));
+        icon: BitmapDescriptor.fromBytes(mrkIcon),
+        markerId: MarkerId(i.toString()),
+        position: latlong[i],
+        // infoWindow: InfoWindow(title: "position $i"),
+        onTap: () {
+          customInfoCtrl.addInfoWindow!(
+              Container(
+                height: 100,
+                width: 200,
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20)),
+                child: Column(
+                  children: [
+                    Expanded(child: Image(image: AssetImage(markerIcon[i]))),
+                    const Text("Hi!")
+                  ],
+                ),
+              ),
+              latlong[i]);
+        },
+      ));
       setState(() {});
     }
   }
@@ -134,6 +158,11 @@ class _MyHomePageState extends State<MyHomePage> {
       onChange();
     });
     loadCustomMarker();
+    _polygon.add(Polygon(
+        polygonId: const PolygonId('1'),
+        points: latlong,
+        strokeWidth: 2,
+        fillColor: Colors.red.withOpacity(0.2)));
     super.initState();
   }
 
@@ -151,71 +180,81 @@ class _MyHomePageState extends State<MyHomePage> {
             child: GoogleMap(
               initialCameraPosition: _kGooglePlex,
               markers: Set.of(_marker),
+              polygons: _polygon,
+              onTap: (argument) {
+                customInfoCtrl.hideInfoWindow!();
+              },
+              onCameraMove: (position) {
+                customInfoCtrl.onCameraMove!();
+              },
               onMapCreated: (controller) {
                 _controller.complete(controller);
+                customInfoCtrl.googleMapController = controller;
               },
             ),
           ),
-          Stack(
-            children: [
-              Container(
-                alignment: Alignment.center,
-                height: h * 0.06,
-                width: w,
-                margin: EdgeInsets.all(
-                  h * 0.01,
-                ),
-                decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(20))),
-                child: TextFormField(
-                  controller: txtController,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    decoration: TextDecoration.none,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: "Enter your location",
-                    hintStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    border: InputBorder.none,
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  onFieldSubmitted: (value) {},
-                ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: ListView.builder(
-                itemCount: placesList.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: ListTile(
-                      onTap: () async {
-                        txtController.text = placesList[index]['description'];
-                        print(placesList[index]['description']);
-                        List locations = await locationFromAddress(
-                            placesList[index]['description']);
-                        print(
-                            "location: ${locations.last.latitude} ${locations.last.longitude}");
-                        if (txtController.text.toString() ==
-                            placesList[index]['description']) {
-                          placesList.clear();
-                          setState(() {});
-                        }
-                      },
-                      title: Text(placesList[index]['description']),
-                    ),
-                  );
-                }),
-          )
+          CustomInfoWindow(controller: customInfoCtrl)
+          // Column(
+          //   children: [
+          //     Container(
+          //       alignment: Alignment.center,
+          //       height: h * 0.06,
+          //       width: w,
+          //       margin: EdgeInsets.all(
+          //         h * 0.01,
+          //       ),
+          //       decoration: const BoxDecoration(
+          //           color: Colors.white,
+          //           borderRadius: BorderRadius.all(Radius.circular(20))),
+          //       child: TextFormField(
+          //         controller: txtController,
+          //         style: const TextStyle(
+          //           color: Colors.black,
+          //           fontSize: 16,
+          //           decoration: TextDecoration.none,
+          //         ),
+          //         decoration: const InputDecoration(
+          //           hintText: "Enter your location",
+          //           hintStyle: TextStyle(
+          //             color: Colors.grey,
+          //             fontSize: 16,
+          //           ),
+          //           border: InputBorder.none,
+          //           prefixIcon: Icon(
+          //             Icons.search,
+          //             color: Colors.grey,
+          //           ),
+          //         ),
+          //         onFieldSubmitted: (value) {},
+          //       ),
+          //     ),
+          //     Expanded(
+          //       child: ListView.builder(
+          //           itemCount: placesList.length,
+          //           itemBuilder: (context, index) {
+          //             return Card(
+          //               child: ListTile(
+          //                 onTap: () async {
+          //                   txtController.text =
+          //                       placesList[index]['description'];
+          //                   print(placesList[index]['description']);
+          //                   List locations = await locationFromAddress(
+          //                       placesList[index]['description']);
+          //                   print(
+          //                       "location: ${locations.last.latitude} ${locations.last.longitude}");
+          //                   if (txtController.text.toString() ==
+          //                       placesList[index]['description']) {
+          //                     placesList.clear();
+          //                     setState(() {});
+          //                   }
+          //                 },
+          //                 title: Text(placesList[index]['description']),
+          //               ),
+          //             );
+          //           }),
+          //     )
+          //   ],
+          // ),
         ],
       ),
       floatingActionButton: Container(
